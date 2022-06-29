@@ -6,7 +6,7 @@ use crate::{
     },
     error::{WriterError, WriterResult},
 };
-use inflector::cases::{pascalcase::to_pascal_case, snakecase::to_snake_case};
+use inflector::cases::{pascalcase::to_pascal_case, snakecase::to_snake_case, camelcase::to_camel_case};
 use log::warn;
 use roxmltree::Node;
 use std::{
@@ -1326,6 +1326,18 @@ impl FileWriter {
             .to_string()
         };
 
+        let renamed_output_xml_type = match self.message_types.get(&to_camel_case(&output_xml_type)) {
+            None => output_xml_type,
+            Some(value) => {
+                let split = value.split("::").collect::<Vec<&str>>();
+                let right_hand = split.get(1);
+
+                match right_hand {
+                    Some(value) => to_camel_case(value),
+                    None => "".to_owned(),
+                }
+            }
+        };
         let soap_wrapper_out = if has_output {
             if !self.have_seen_type(&output_soap_name, parent) {
                 Option::Some(format!(
@@ -1340,7 +1352,7 @@ impl FileWriter {
                     output_soap_name,
                     output_type,
                     PORTS_MOD,
-                    output_xml_type,
+                    renamed_output_xml_type,
                     soap_fault,
                     self.construct_soap_wrapper(output_type.as_str(), output_soap_name.as_str()),
                 ))
